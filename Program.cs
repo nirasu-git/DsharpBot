@@ -14,9 +14,7 @@ namespace DsharpBot
 	public class Program
 	{
 		
-		public static ulong[] adminID = { 766625771673354311 };
 		private static string databasePath = "G:/DsharpBot/database.json";
-
 
 		public static Dictionary<ulong, Dictionary<ulong, float>> currentGuildUsersPointsPairs;
 		public static List<DiscordGuild> guilds;
@@ -48,7 +46,6 @@ namespace DsharpBot
 				string json = JsonConvert.SerializeObject(currentGuildUsersPointsPairs, Formatting.Indented);
 				File.WriteAllText(databasePath, json);
 
-				Console.WriteLine("a");
 				if (currentGuildUsersPointsPairs.TryGetValue(currentGuild.Id, out var currentGuildKeyPairs)) await Task.CompletedTask;
 				else currentGuildUsersPointsPairs.Add(currentGuild.Id, new Dictionary<ulong, float>());
 				await Task.CompletedTask;
@@ -56,9 +53,12 @@ namespace DsharpBot
 			discord.MessageCreated += async (s, message) =>
 			{
 				var currentGuild = message.Guild;
+
+				var messageToPoints = message.Message.Content.Length * message.Message.Content.Length / 30;
+
 				if (currentGuildUsersPointsPairs[currentGuild.Id].TryGetValue(message.Author.Id, out float authorPoints))
-					currentGuildUsersPointsPairs[currentGuild.Id][message.Author.Id] = authorPoints + message.Message.Content.Length * message.Message.Content.Length / 30;
-				else currentGuildUsersPointsPairs[currentGuild.Id].Add(message.Author.Id, message.Message.Content.Length * message.Message.Content.Length / 30);
+					currentGuildUsersPointsPairs[currentGuild.Id][message.Author.Id] = authorPoints + messageToPoints;
+				else currentGuildUsersPointsPairs[currentGuild.Id].Add(message.Author.Id, messageToPoints);
 
 				string json = JsonConvert.SerializeObject(currentGuildUsersPointsPairs, Formatting.Indented);
 
@@ -71,7 +71,7 @@ namespace DsharpBot
 			var commands = discord.UseCommandsNext(new CommandsNextConfiguration()
 			{
 				StringPrefixes = new[] { "." }
-			}); commands.RegisterCommands<MyCommands>();
+			}); commands.RegisterCommands<Commands>();
 
 			await discord.ConnectAsync();
 			await Task.Delay(-1);

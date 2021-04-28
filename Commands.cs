@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 
 namespace DsharpBot
 {
-	class MyCommands : BaseCommandModule
+	class Commands : BaseCommandModule
 	{
 		//c42aabac7225121c29294eb8434177c3
 
