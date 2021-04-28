@@ -1,4 +1,4 @@
-﻿﻿using System;
+﻿using System;﻿
 using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
@@ -13,15 +13,16 @@ namespace DsharpBot
 {
 	public class Program
 	{
-		
-		private static string databasePath = "G:/DsharpBot/database.json";
+		private static string databasePath;
 
 		public static Dictionary<ulong, Dictionary<ulong, float>> currentGuildUsersPointsPairs;
-		public static List<DiscordGuild> guilds;
+		public static List<DiscordGuild> guilds = new List<DiscordGuild>();
 
 		public static void Main(string[] args)
 		{
-			currentGuildUsersPointsPairs = LoadPointsDataBase();
+			databasePath = Environment.CurrentDirectory;
+			
+			currentGuildUsersPointsPairs = GetLoadPointsDataBase();
 
 			var timer = new Timer(CheckActiveUsersInVoiceChannel, 0, 0, 1000 * 60 * 5); //5 minutes
 
@@ -38,19 +39,15 @@ namespace DsharpBot
 				Intents = DiscordIntents.AllUnprivileged
 			});
 
-			discord.GuildAvailable += async (s, e) =>
+			discord.GuildAvailable += async (discordClient, guildEventArgs) =>
 			{
-				var currentGuild = e.Guild;
+				var currentGuild = guildEventArgs.Guild;
 				guilds.Add(currentGuild);
 
-				string json = JsonConvert.SerializeObject(currentGuildUsersPointsPairs, Formatting.Indented);
-				File.WriteAllText(databasePath, json);
-
 				if (currentGuildUsersPointsPairs.TryGetValue(currentGuild.Id, out var currentGuildKeyPairs)) await Task.CompletedTask;
-				else currentGuildUsersPointsPairs.Add(currentGuild.Id, new Dictionary<ulong, float>());
-				await Task.CompletedTask;
+				else currentGuildUsersPointsPairs.Add(currentGuild.Id, new Dictionary<ulong, float>()); await Task.CompletedTask;
 			};
-			discord.MessageCreated += async (s, message) =>
+			discord.MessageCreated += async (discordClient, message) =>
 			{
 				var currentGuild = message.Guild;
 
@@ -58,16 +55,16 @@ namespace DsharpBot
 
 				if (currentGuildUsersPointsPairs[currentGuild.Id].TryGetValue(message.Author.Id, out float authorPoints))
 					currentGuildUsersPointsPairs[currentGuild.Id][message.Author.Id] = authorPoints + messageToPoints;
+
 				else currentGuildUsersPointsPairs[currentGuild.Id].Add(message.Author.Id, messageToPoints);
 
 				string json = JsonConvert.SerializeObject(currentGuildUsersPointsPairs, Formatting.Indented);
 
 				File.WriteAllText(databasePath, json);
+
 				await Task.CompletedTask;
-
 			};
-
-
+			
 			var commands = discord.UseCommandsNext(new CommandsNextConfiguration()
 			{
 				StringPrefixes = new[] { "." }
@@ -83,6 +80,7 @@ namespace DsharpBot
 		}
 		public static async Task<int> AddPointsToActiveUsersInVoiceChannelsAsync()
 		{
+			await Task.Delay(10000);
 			foreach (var currentGuild in guilds)
 			{
 				string data = string.Empty;
@@ -108,7 +106,6 @@ namespace DsharpBot
 							}
 							data += $"{user.Mention}, you are rewarded for being in the voice channel, your score is {currentGuildUsersPointsPairs[currentGuild.Id][user.Id]}\n";
 						}
-
 					}
 				}
 				string json = JsonConvert.SerializeObject(currentGuildUsersPointsPairs, Formatting.Indented);
@@ -118,22 +115,13 @@ namespace DsharpBot
 			}
 			return 1;
 		}
+		public static Dictionary<ulong, float> GetKeys(DiscordGuild currentGuild) => currentGuildUsersPointsPairs[currentGuild.Id];
 
-		public static Dictionary<ulong, float> GetKeys(DiscordGuild currentGuild)
+		internal static Dictionary<ulong, Dictionary<ulong, float>> GetLoadPointsDataBase()
 		{
-			return currentGuildUsersPointsPairs[currentGuild.Id];
+			
+			if (File.Exists(databasePath)) return JsonConvert.DeserializeObject<Dictionary<ulong, Dictionary<ulong, float>>>(File.ReadAllText(databasePath));
+			else return new Dictionary<ulong, Dictionary<ulong, float>>(); 
 		}
-		internal static Dictionary<ulong, Dictionary<ulong, float>> LoadPointsDataBase()
-		{
-			try
-			{
-				string json = File.ReadAllText(databasePath);
-				return JsonConvert.DeserializeObject<Dictionary<ulong, Dictionary<ulong, float>>>(json);
-			}
-			catch { return new Dictionary<ulong, Dictionary<ulong, float>>(); }
-		}
-
 	}
-
-
 }

@@ -1,2 +1,7 @@
 Token.cs
 database.json
+
+bin/
+obj/
+vs/
+.vs/
