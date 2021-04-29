@@ -7,7 +7,9 @@ using DSharpPlus;
 using DSharpPlus.CommandsNext;
 using DSharpPlus.Entities;
 using Newtonsoft.Json;
-
+using DSharpPlus.Interactivity.Extensions;
+using DSharpPlus.Interactivity;
+using DSharpPlus.Interactivity.Enums;
 
 namespace DsharpBot
 {
@@ -17,15 +19,15 @@ namespace DsharpBot
 
 		public static List<DiscordGuild> guildsToCheck = new List<DiscordGuild>();
 
-		public static Dictionary<ulong, Guild> guildsData; 
-
+		public static Dictionary<ulong, Guild> guildsData;
 		public static string serializedData;
+		static DiscordClient discord;
 
 		public static void Main(string[] args)
 		{
 			guildsData = GetLoadPointsDataBase();
 
-            var minutes = 0.5f;
+            var minutes = 5f;
 			var timer = new Timer(CheckActiveUsersInVoiceChannel, 0f, 0, (int)(1000f * 60f * minutes)); //milis to minutes
 
 			new Program().MainAsync().GetAwaiter().GetResult();
@@ -33,14 +35,14 @@ namespace DsharpBot
 
 		public async Task MainAsync()
 		{
-			var discord = new DiscordClient(new DiscordConfiguration()
+			discord = new DiscordClient(new DiscordConfiguration()
 			{
 				AutoReconnect = true,
 				Token = Token.token,
 				TokenType = TokenType.Bot,
 				Intents = DiscordIntents.AllUnprivileged
 			});
-
+			
 			discord.GuildAvailable += async (discordClient, guildEventArgs) =>
 			{
 				var currentGuild = guildEventArgs.Guild;
@@ -54,6 +56,11 @@ namespace DsharpBot
 				}
 				serializedData = JsonConvert.SerializeObject(guildsData);
 			};
+			discord.UseInteractivity(new InteractivityConfiguration()
+			{
+				PollBehaviour = PollBehaviour.KeepEmojis,
+				Timeout = TimeSpan.FromSeconds(10)
+			});
 			discord.MessageCreated += async (discordClient, message) =>
 			{
 				var currentGuild = message.Guild;
@@ -103,7 +110,7 @@ namespace DsharpBot
 				DiscordChannel channelForBot = null;
 				foreach (var channel in currentGuild.Channels)
 				{
-					if (channel.Value.Type.ToString() == "Text" && channelForBot == null)
+					if (channel.Value.Name.ToString() == "основной" && channelForBot == null)
 					{
 						channelForBot = channel.Value;
 					}
@@ -111,13 +118,13 @@ namespace DsharpBot
 					{
 						foreach (var user in channel.Value.Users)
 						{
-							AddPointsToUser(currentGuild.Id, user, 1000);
+							AddPointsToUser(currentGuild.Id, user, new Random().Next(800,1200));
 
-							data += $"{user.Nickname}, you are rewarded for being in the voice channel, your score is {guildsData[currentGuild.Id].users[user.Id].expirience}\n";
+							data += $"{user.DisplayName}, you are rewarded for being in the voice channel, your score is {guildsData[currentGuild.Id].users[user.Id].expirience}\n";
 						}
 					}
 				}
-				serializedData = JsonConvert.SerializeObject(guildsData);
+				serializedData = JsonConvert.SerializeObject(guildsData, Formatting.Indented);
 
 				File.WriteAllText(databasePath, serializedData);
 
@@ -131,8 +138,6 @@ namespace DsharpBot
 		internal static Dictionary<ulong, Guild> GetLoadPointsDataBase()
 		{
 			if (File.Exists(databasePath) && File.ReadAllText(databasePath)!= null) return JsonConvert.DeserializeObject<Dictionary<ulong, Guild>>(File.ReadAllText(databasePath));
-
-
 			else return new Dictionary<ulong, Guild>();
 			
 		}	
