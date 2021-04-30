@@ -28,7 +28,7 @@ namespace DsharpBot
 
 			var userExp = Program.GetGuild(ctx.Guild.Id).users[ctx.User.Id].expirience;
 
-            if (userExp > 1000) 
+			if (userExp > 1000) 
 			{ 
 				foreach (var role in ctx.Guild.Roles.Values)
 				{
@@ -144,13 +144,19 @@ namespace DsharpBot
 					result = await ctx.Message.GetNextMessageAsync(m =>
 					{
 						guild.respondents[ctx.User.Id].form = m.Content;
-						guild.respondents[ctx.User.Id].attachment = m.Attachments[0];
-						guild.respondents[ctx.User.Id].discordLink = ctx.User;
-						ctx.RespondAsync("Анкета создана");
-						return true;
+						if (m.Attachments.Count < 1 )
+						{
+							ctx.RespondAsync("Вы не отправили фото");
+							return false;
+						}
+						else
+						{
+							guild.respondents[ctx.User.Id].attachment = m.Attachments[0];
+							guild.respondents[ctx.User.Id].discordLink = ctx.User;
+							ctx.RespondAsync("Анкета создана");
+							return true;
+						}
 					});
-					
-
 				}
 				else
 					await ctx.RespondAsync("Предпочитаемый пол не указан либо указан неверно.");
@@ -199,7 +205,7 @@ namespace DsharpBot
 						matchedTags += " " + tag;
 						points += 1;
                 }
-				if (points > maxPoints)
+				if (points > maxPoints && respondent.discordLink.Id != ctx.User.Id)
 				{
 					maxPoints = points;
 					prefferedRespondent = respondent;
