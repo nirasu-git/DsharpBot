@@ -15,7 +15,7 @@ namespace DsharpBot
 {
 	public class Program
 	{
-		private static string DatabasePath = "G:/DsharpBot/database.json";
+		readonly static string DatabasePath = "G:/DsharpBot/database.json";
 
 		public static List<DiscordGuild> GuildsToCheck = new List<DiscordGuild>();
 
@@ -23,7 +23,7 @@ namespace DsharpBot
 		public static string SerializedData;
 		static DiscordClient Discord;
 
-		public static void Main(string[] args)
+		public static void Main()
 		{
 			GuildsData = LoadGuildsData();
 
@@ -47,8 +47,14 @@ namespace DsharpBot
 			{
 				var currentGuild = guildEventArgs.Guild;
 				GuildsToCheck.Add(currentGuild);
-
+				var guildMembers = currentGuild.Members;
+				foreach (var guildMember in guildMembers) 
+				{
+					Commands.AddMember(guildMember.Key, guildMember.Value);
+				}
+				
 				if (GuildsData.ContainsKey(currentGuild.Id)) await Task.CompletedTask;
+				
 				else
 				{
 					GuildsData.Add(currentGuild.Id, new Guild());
@@ -58,7 +64,7 @@ namespace DsharpBot
 			Discord.UseInteractivity(new InteractivityConfiguration()
 			{
 				PollBehaviour = PollBehaviour.KeepEmojis,
-				Timeout = TimeSpan.FromSeconds(30)
+				Timeout = TimeSpan.FromHours(30)
 			});
 			Discord.MessageCreated += async (discordClient, message) =>
 			{

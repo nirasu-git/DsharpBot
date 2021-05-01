@@ -1,4 +1,3 @@
-using DSharpPlus.Entities;
 using System.Collections.Generic;
 
 namespace DsharpBot
@@ -7,7 +6,6 @@ namespace DsharpBot
 		public Dictionary<ulong, User> Users = new Dictionary<ulong, User> { };
 		public Dictionary<ulong, Respondent> Respondents = new Dictionary<ulong, Respondent> { };
 	}
-
 	public class User
 	{
 		public float Expirience { get; set; }
@@ -18,14 +16,11 @@ namespace DsharpBot
 
 		public string Form { get; set; }
 
-		public List<ulong> DeclinedIds = new List<ulong> { };
+		public List<ulong> ViewedIds = new List<ulong> { };
 
-		public DiscordUser DiscordLink;
+		public ulong Id;
 
-		public string Gender = null;
-
-		public string PrefferedGender = null;
-
+		public string DiscordLink;
 		public string AttachmentUrl { get; set; }
-}
+	}
 }
