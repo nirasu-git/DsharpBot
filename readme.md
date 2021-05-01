@@ -40,9 +40,13 @@ token = " " => "your bot token"
 ****
 ## Функции
 Ввод команд доступен на двух языках
+
 **Подробно на русском**
+
 <img src="https://sun9-26.userapi.com/impg/ILtqQU4FCXPJdNiovRYeL8R-46dcL5x6mY3RjQ/WIBoGS73AFM.jpg?size=470x171&quality=96&sign=56ea9d6560f40f312602f6e7517b2e1f&type=album">
+
 **Сокращенно на английском**
+
 <img src="https://sun9-19.userapi.com/impg/4WthOQI3pc1kvg2Fam7RKUCkkos7ag4Jr816Gg/BqQO729E3Go.jpg?size=497x185&quality=96&sign=93e2319a924e33e63332c21d2d9aa871&type=album">
 ****
 <h5>Функциональность для гильдий (серверов)</h5>
