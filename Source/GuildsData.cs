@@ -4,28 +4,28 @@ using System.Collections.Generic;
 namespace DsharpBot
 {
 	public class Guild {
-		public Dictionary<ulong, User> users = new Dictionary<ulong, User> { };
-		public Dictionary<ulong, Respondent> respondents = new Dictionary<ulong, Respondent> { };
+		public Dictionary<ulong, User> Users = new Dictionary<ulong, User> { };
+		public Dictionary<ulong, Respondent> Respondents = new Dictionary<ulong, Respondent> { };
 	}
 
 	public class User
 	{
-		public float expirience { get; set; }
+		public float Expirience { get; set; }
 	}
 	public class Respondent
 	{
-		public List<string> tags = new List<string> { };
+		public List<string> Tags = new List<string> { };
 
-		public string form { get; set; }
+		public string Form { get; set; }
 
-		public List<ulong> declinedIDs = new List<ulong> { };
+		public List<ulong> DeclinedIds = new List<ulong> { };
 
-		public DiscordUser discordLink;
+		public DiscordUser DiscordLink;
 
-		public string gender = null;
+		public string Gender = null;
 
-		public string prefferedGender = null;
+		public string PrefferedGender = null;
 
-		public DiscordAttachment attachment { get; set; }
+		public string AttachmentUrl { get; set; }
 }
 }

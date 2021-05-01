@@ -18,7 +18,7 @@ namespace DsharpBot
 		{
 			var guild= Program.GetGuild(ctx.Guild.Id);
 
-			await ctx.RespondAsync($"{ctx.Member.Mention}, your score is {guild.users[ctx.User.Id].expirience}");
+			await ctx.RespondAsync($"{ctx.Member.Mention}, your score is {guild.Users[ctx.User.Id].Expirience}");
 		}
 		[Command("получить-роль"), Aliases("tr")]
 		[RequireGuild]
@@ -26,7 +26,7 @@ namespace DsharpBot
 		{
 			DiscordRole rolesThatWasCreatedEarlier = null;
 
-			var userExp = Program.GetGuild(ctx.Guild.Id).users[ctx.User.Id].expirience;
+			var userExp = Program.GetGuild(ctx.Guild.Id).Users[ctx.User.Id].Expirience;
 
 			if (userExp > 1000) 
 			{ 
@@ -58,24 +58,28 @@ namespace DsharpBot
 		{
 			var guild = Program.GetGuild(1);
 
-			if (guild.respondents.ContainsKey(ctx.User.Id))
-				foreach (var tag in newTags)
-                    if (!guild.respondents[ctx.User.Id].tags.Contains(tag))
-                        guild.respondents[ctx.User.Id].tags.Add(tag.ToLower());
-					
-			else 
-				guild.respondents.Add(ctx.User.Id, new Respondent(){ tags = newTags.ToList()});
-			
+			if (!guild.Respondents.ContainsKey(ctx.User.Id))
+				guild.Respondents.Add(ctx.User.Id, new Respondent());
+
+			foreach (var tag in newTags)
+			{
+				if (!guild.Respondents[ctx.User.Id].Tags.Contains(tag.ToLower()))
+				{
+					guild.Respondents[ctx.User.Id].Tags.Add(tag.ToLower());
+				}
+			}
+			guild.Respondents[ctx.User.Id].DiscordLink = ctx.User;
+			guild.Respondents[ctx.User.Id].AttachmentUrl = ctx.User.AvatarUrl;
 			Program.SaveFormsData(guild);
-			await ctx.RespondAsync($"Your tags now - {string.Join(", ", guild.respondents[ctx.User.Id].tags) }");
+			await ctx.RespondAsync($"У вас теперь следующие теги - {string.Join(", ", guild.Respondents[ctx.User.Id].Tags) }");
 		}
 		[Command("показать-теги-пользователя"), Aliases("shwtgs")]
 		public async Task ShowTags(CommandContext ctx, DiscordMember user)
 		{
 			var guild = Program.GetGuild(1);
 
-			if (guild.respondents[user.Id].tags != null || guild.respondents[user.Id].tags.Count!=0) 
-				await ctx.RespondAsync($"У пользователя следующие теги - {string.Join(", ", guild.respondents[user.Id].tags)}");
+			if (guild.Respondents[user.Id].Tags != null || guild.Respondents[user.Id].Tags.Count!=0) 
+				await ctx.RespondAsync($"У пользователя следующие теги - {string.Join(", ", guild.Respondents[user.Id].Tags)}");
 
 			else await ctx.RespondAsync($"У пользователя нет тегов");
 		}
@@ -84,10 +88,10 @@ namespace DsharpBot
 		{
 			var guild = Program.GetGuild(1);
 
-			if (guild.respondents.ContainsKey(ctx.User.Id))
+			if (guild.Respondents.ContainsKey(ctx.User.Id))
 				foreach (var tag in tagsToRemove)
-					if (guild.respondents[ctx.User.Id].tags.Contains(tag))
-						guild.respondents[ctx.User.Id].tags.Remove(tag);
+					if (guild.Respondents[ctx.User.Id].Tags.Contains(tag))
+						guild.Respondents[ctx.User.Id].Tags.Remove(tag);
 				
 			else
 				await ctx.RespondAsync($"У вас нет тегов");
@@ -100,9 +104,9 @@ namespace DsharpBot
 		{
 			var guild = Program.GetGuild(1);
 
-			if (guild.respondents.ContainsKey(ctx.User.Id))
+			if (guild.Respondents.ContainsKey(ctx.User.Id))
 			{
-				guild.respondents[ctx.User.Id].tags.Clear();
+				guild.Respondents[ctx.User.Id].Tags.Clear();
 			}
 			Program.SaveFormsData(guild);
 			await ctx.RespondAsync($"Все теги удалены");
@@ -112,8 +116,8 @@ namespace DsharpBot
 		{
 			var guild = Program.GetGuild(1);
 
-			if (!guild.respondents.ContainsKey(ctx.User.Id)) 
-				guild.respondents.Add(ctx.User.Id, new Respondent());
+			if (!guild.Respondents.ContainsKey(ctx.User.Id)) 
+				guild.Respondents.Add(ctx.User.Id, new Respondent());
 
 			await ctx.RespondAsync("Ваш пол: *м* или *ж*");
 
@@ -121,45 +125,31 @@ namespace DsharpBot
 			{
 				if (genders.Contains(m.Content.ToLower()))
 				{
-					guild.respondents[ctx.User.Id].gender = m.Content;
+					guild.Respondents[ctx.User.Id].Gender = m.Content;
 					return true;
 				}
 				else return false;
 			});
 			if (!result.TimedOut)
 			{
-				await ctx.RespondAsync("Предпочтительный пол: *м* или *ж*");
-				result = await ctx.Message.GetNextMessageAsync(m =>
-				{
-					if (genders.Contains(m.Content.ToLower()))
-					{
-						guild.respondents[ctx.User.Id].prefferedGender = m.Content;
-						return true;
-					}
-					else return false;
-				});
-				if (!result.TimedOut)
-				{
-					await ctx.RespondAsync("Введите содержимое вашей анкеты и отправьте картинку:");
+					await ctx.RespondAsync("Введите содержимое вашей анкеты и отправьте картинку одним сообщением:");
 					result = await ctx.Message.GetNextMessageAsync(m =>
 					{
-						guild.respondents[ctx.User.Id].form = m.Content;
+						guild.Respondents[ctx.User.Id].Form = m.Content;
+						guild.Respondents[ctx.User.Id].DiscordLink = ctx.User;
+						
 						if (m.Attachments.Count < 1 )
 						{
-							ctx.RespondAsync("Вы не отправили фото");
-							return false;
+							guild.Respondents[ctx.User.Id].AttachmentUrl = m.Author.AvatarUrl;
+							ctx.RespondAsync("Вы не отправили картинку поэтому к анкете прикреплена ваша аватарка, анкета создана");
 						}
 						else
 						{
-							guild.respondents[ctx.User.Id].attachment = m.Attachments[0];
-							guild.respondents[ctx.User.Id].discordLink = ctx.User;
+							guild.Respondents[ctx.User.Id].AttachmentUrl = m.Attachments[0].Url;
 							ctx.RespondAsync("Анкета создана");
-							return true;
 						}
+						return true;
 					});
-				}
-				else
-					await ctx.RespondAsync("Предпочитаемый пол не указан либо указан неверно.");
 			}
 			else
 				await ctx.RespondAsync("Пол не указан либо указан неверно.");
@@ -170,9 +160,12 @@ namespace DsharpBot
 		public async Task ShowForm(CommandContext ctx, DiscordMember user)
 		{
 			var guild = Program.GetGuild(1);
-			if (guild.respondents.ContainsKey(user.Id) & guild.respondents[user.Id].form != null) 
-
-				await ctx.RespondAsync($"{guild.respondents[user.Id].form}", new DiscordEmbedBuilder{ ImageUrl = guild.respondents[user.Id].attachment.Url }.Build());
+			if (guild.Respondents.ContainsKey(user.Id) & guild.Respondents[user.Id].Form != null) 
+				await ctx.RespondAsync(
+					$"{guild.Respondents[user.Id].Gender} \n" +
+					$"{guild.Respondents[user.Id].Form}", 
+					new DiscordEmbedBuilder{ ImageUrl = guild.Respondents[user.Id].AttachmentUrl }.Build()
+					);
 
 			else await ctx.RespondAsync($"У указанного пользователя отсутствует анкета");
 		}
@@ -188,34 +181,33 @@ namespace DsharpBot
 		{
 			var guild = Program.GetGuild(1);
 			
-			List<string> tags = guild.respondents[ctx.User.Id].tags;
+			List<string> tags = guild.Respondents[ctx.User.Id].Tags;
 
 			Respondent prefferedRespondent = new Respondent();
 
 			string matchedTags = string.Empty;
-			
 			int maxPoints = -1;
-			foreach (var respondent in guild.respondents.Values)
+			foreach (var respondent in guild.Respondents.Values)
 			{
 				int points = 0;
-
-				foreach (var tag in respondent.tags)
+				matchedTags = string.Empty;
+				foreach (var tag in respondent.Tags)
                 {
-					if (tags.Contains(tag))
+					if (tags.Contains(tag.ToLower()))
 						matchedTags += " " + tag;
 						points += 1;
                 }
-				if (points > maxPoints && respondent.discordLink.Id != ctx.User.Id)
+				if (points > maxPoints && respondent.DiscordLink.Id != ctx.User.Id)
 				{
 					maxPoints = points;
 					prefferedRespondent = respondent;
 				}
 			
 			}
-				
-			await ctx.RespondAsync($"С данным пользователем совпали следующие теги:{matchedTags};\n" +
-				$"{prefferedRespondent.discordLink.Username}#{prefferedRespondent.discordLink.Discriminator} \n" +
-				$"{prefferedRespondent.form}", new DiscordEmbedBuilder{ ImageUrl = guild.respondents[prefferedRespondent.discordLink.Id].attachment.Url }.Build());
+			await ctx.RespondAsync($"Найден пользователь \n" +
+				$" {prefferedRespondent.DiscordLink.Username}#{prefferedRespondent.DiscordLink.Discriminator}\n" +
+				$"С данным пользователем совпали следующие теги:{matchedTags};\n" +
+				$"{prefferedRespondent.Form}", new DiscordEmbedBuilder{ ImageUrl = guild.Respondents[prefferedRespondent.DiscordLink.Id].AttachmentUrl }.Build());
 		}
 
 

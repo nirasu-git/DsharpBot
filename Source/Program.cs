@@ -15,17 +15,17 @@ namespace DsharpBot
 {
 	public class Program
 	{
-		private static string databasePath = "G:/DsharpBot/database.json";
+		private static string DatabasePath = "G:/DsharpBot/database.json";
 
-		public static List<DiscordGuild> guildsToCheck = new List<DiscordGuild>();
+		public static List<DiscordGuild> GuildsToCheck = new List<DiscordGuild>();
 
-		public static Dictionary<ulong, Guild> guildsData;
-		public static string serializedData;
-		static DiscordClient discord;
+		public static Dictionary<ulong, Guild> GuildsData;
+		public static string SerializedData;
+		static DiscordClient Discord;
 
 		public static void Main(string[] args)
 		{
-			guildsData = LoadGuildsData();
+			GuildsData = LoadGuildsData();
 
             var minutes = 5f;
 			var timer = new Timer(CheckUsersInVoiceChannels, 0f, 0, (int)(1000f * 60f * minutes)); 
@@ -35,7 +35,7 @@ namespace DsharpBot
 
 		public async Task MainAsync()
 		{
-			discord = new DiscordClient(new DiscordConfiguration()
+			Discord = new DiscordClient(new DiscordConfiguration()
 			{
 				AutoReconnect = true,
 				Token = Token.token,
@@ -43,63 +43,61 @@ namespace DsharpBot
 				Intents = DiscordIntents.AllUnprivileged
 			});
 
-			discord.GuildAvailable += async (discordClient, guildEventArgs) =>
+			Discord.GuildAvailable += async (discordClient, guildEventArgs) =>
 			{
 				var currentGuild = guildEventArgs.Guild;
-				guildsToCheck.Add(currentGuild);
+				GuildsToCheck.Add(currentGuild);
 
-				if (guildsData.ContainsKey(currentGuild.Id)) await Task.CompletedTask;
+				if (GuildsData.ContainsKey(currentGuild.Id)) await Task.CompletedTask;
 				else
 				{
-					guildsData.Add(currentGuild.Id, new Guild());
+					GuildsData.Add(currentGuild.Id, new Guild());
 				}
-				serializedData = JsonConvert.SerializeObject(guildsData);
+				SerializedData = JsonConvert.SerializeObject(GuildsData);
 			};
-			discord.UseInteractivity(new InteractivityConfiguration()
+			Discord.UseInteractivity(new InteractivityConfiguration()
 			{
 				PollBehaviour = PollBehaviour.KeepEmojis,
 				Timeout = TimeSpan.FromSeconds(30)
 			});
-			discord.MessageCreated += async (discordClient, message) =>
+			Discord.MessageCreated += async (discordClient, message) =>
 			{
 				var currentGuild = message.Guild;
 
 				var messageToPoints = message.Message.Content.Length * message.Message.Content.Length / 30;
 
-				if (currentGuild == null)
-				{
-					if (!guildsData.ContainsKey(1))
+				if (!GuildsData.ContainsKey(1))
 					{
-						guildsData.Add(1, new Guild());
+						GuildsData.Add(1, new Guild());
 					}
-					AddPointsToUser(1, message.Author, messageToPoints);
-				}
-				else
+				
+				if (currentGuild != null)
 					AddPointsToUser(currentGuild.Id, message.Author, messageToPoints);
+				
 
 				await Task.CompletedTask;
 			};
-			var commands = discord.UseCommandsNext(new CommandsNextConfiguration()
+			var commands = Discord.UseCommandsNext(new CommandsNextConfiguration()
 			{
 				StringPrefixes = new[] { "-" }
 			}); commands.RegisterCommands<Commands>();
 
-			await discord.ConnectAsync();
+			await Discord.ConnectAsync();
 			await Task.Delay(-1);
 		}
 		static void AddPointsToUser(ulong currentGuildId, DiscordUser discordUser, float value)
         {
 			var user = new User()
 			{
-				expirience = value
+				Expirience = value
 			};
 			
-			if (guildsData[currentGuildId].users.ContainsKey(discordUser.Id))
+			if (GuildsData[currentGuildId].Users.ContainsKey(discordUser.Id))
 			{
-				guildsData[currentGuildId].users[discordUser.Id].expirience += value;
+				GuildsData[currentGuildId].Users[discordUser.Id].Expirience += value;
 			}
 			else
-				guildsData[currentGuildId].users.Add(discordUser.Id, user);
+				GuildsData[currentGuildId].Users.Add(discordUser.Id, user);
 
 		}
 		static void CheckUsersInVoiceChannels(object state)
@@ -108,7 +106,7 @@ namespace DsharpBot
 		}
 		public static async Task<int> AddPointsToUsersInVoiceChannelsAsync()
 		{
-			foreach (var currentGuild in guildsToCheck)
+			foreach (var currentGuild in GuildsToCheck)
 			{
 				string data = string.Empty;
 				DiscordChannel channelForBot = null;
@@ -124,7 +122,7 @@ namespace DsharpBot
 						{
 							AddPointsToUser(currentGuild.Id, user, new Random().Next(0,1200));
 
-							data += $"{user.DisplayName}, you are rewarded for being in the voice channel, your score is {guildsData[currentGuild.Id].users[user.Id].expirience}\n";
+							data += $"{user.DisplayName}, you are rewarded for being in the voice channel, your score is {GuildsData[currentGuild.Id].Users[user.Id].Expirience}\n";
 						}
 					}
 				}
@@ -135,24 +133,30 @@ namespace DsharpBot
 			}
 			return 1;
 		}
-		public static Guild GetGuild(ulong currentGuildId) => guildsData[currentGuildId];
+		public static Guild GetGuild(ulong currentGuildId) => GuildsData[currentGuildId];
 
 		public static void SaveFormsData(Guild _guild)
         {
-			guildsData[1] = _guild;
-			serializedData = JsonConvert.SerializeObject(guildsData, Formatting.Indented);
-			File.WriteAllText(databasePath, serializedData);
+			GuildsData[1] = _guild;
+			SerializedData = JsonConvert.SerializeObject(GuildsData, Formatting.Indented);
+			File.WriteAllText(DatabasePath, SerializedData);
 		}
 		public static void SaveGuildsData()
 		{
-			serializedData = JsonConvert.SerializeObject(guildsData, Formatting.Indented);
-			File.WriteAllText(databasePath, serializedData);
+			SerializedData = JsonConvert.SerializeObject(GuildsData, Formatting.Indented);
+			File.WriteAllText(DatabasePath, SerializedData);
 		}
 
 		internal static Dictionary<ulong, Guild> LoadGuildsData()
 		{
-			if (File.Exists(databasePath) && File.ReadAllText(databasePath)!= null) return JsonConvert.DeserializeObject<Dictionary<ulong, Guild>>(File.ReadAllText(databasePath));
-			else return new Dictionary<ulong, Guild>();
+			if (File.Exists(DatabasePath) && File.ReadAllText(DatabasePath) != null)
+			{
+				return JsonConvert.DeserializeObject<Dictionary<ulong, Guild>>(File.ReadAllText(DatabasePath));
+			}
+			else 
+			{
+				return new Dictionary<ulong, Guild>();
+			}
 			
 		}	
 	}
