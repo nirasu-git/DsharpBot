@@ -37,10 +37,10 @@ namespace DsharpBot
 			await ctx.RespondAsync(
 				new DiscordEmbedBuilder {
 					Color = new DiscordColor("#B388FD"),
-					Description = $"{ctx.Member.Mention}, your score is {guild.Users[ctx.User.Id].Expirience}" 
+					Description = $"{ctx.Member.Mention}, ваш счет равен {guild.Users[ctx.User.Id].Expirience}." 
 				});
 		}
-		[Command("получить-роль"), Aliases("tr","takerole")]
+		[Command("получить-роль"), Aliases("tr", "takerole")]
 		[RequireGuild]
 		public async Task TakeRole(CommandContext ctx, params string[] paramsArray)
 		{
@@ -54,12 +54,12 @@ namespace DsharpBot
 			{ 
 				foreach (var role in ctx.Guild.Roles.Values)
 				{
-					if (role.Name == paramsArray[0]) 
+					if (role.Name == string.Join(" ", paramsArray)) 
 						rolesThatWasCreatedEarlier = role;
 				}
 				foreach (var role in ctx.Member.Roles)
 				{
-					if (role.Name == paramsArray[0]) 
+					if (role.Name == string.Join(" ", paramsArray)) 
 						await ctx.RespondAsync(
 							new DiscordEmbedBuilder {
 								Color = new DiscordColor("#B388FD"),
@@ -75,25 +75,25 @@ namespace DsharpBot
 					}
 					else
 					{
-					await ctx.Member.GrantRoleAsync(await ctx.Guild.CreateRoleAsync(paramsArray[0]));
+					await ctx.Member.GrantRoleAsync(await ctx.Guild.CreateRoleAsync(string.Join(" ", paramsArray)));
 					}
 					await ctx.RespondAsync(
 						new DiscordEmbedBuilder {
 							Color = new DiscordColor("#B388FD"),
-							Description = "You are {paramsArray[0]} now" 
-					});
+							Description = $"Теперь вы {string.Join(" ", paramsArray)}"
+						});;
 				}	
 				else await ctx.RespondAsync(
 					new DiscordEmbedBuilder {
 						Color = new DiscordColor("#B388FD"),
-						Description = "Action declined." 
+						Description = "Действие отклонено." 
 				});
 			}
 			else 
 				await ctx.RespondAsync(
 					new DiscordEmbedBuilder {
 						Color = new DiscordColor("#B388FD"),
-						Description = $"You need {requiredNumberOfPoints - userExp} exp more to use this feature" 
+						Description = $"Вам необходимо набрать еще {requiredNumberOfPoints - userExp} опыта чтобы воспользоваться этой функцией, попробуйте пообщаться!" 
 					});
 		}
 
@@ -297,7 +297,7 @@ namespace DsharpBot
 									$"Вас оценил пользователь.\n" +
 									$"Код добавления: {respondent.DiscordLink}\n" +
 									$"Анкета: {respondent.Form}\n" +
-									$"Теги:{ string.Join(", ", respondent.Tags)};\n",
+									$"Теги: { string.Join(", ", respondent.Tags)};\n",
 								ImageUrl = respondent.AttachmentUrl
 								
 							});
