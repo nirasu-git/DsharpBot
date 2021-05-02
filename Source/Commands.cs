@@ -25,8 +25,9 @@ namespace DsharpBot
 						$"получить-роль rolename - tr rolename - takerole rolename \n" +
 						$"создать-анкету - cf - createform\n" +
 						$"показать-анкету - sf - showform \n" +
-						$"найти-человека-по-тегам - fbt - findbytags \n"
-				 });
+						$"найти-по-тегам - fbt - findbytags \n"+
+						$"найти-случайно - fr - findrandomly \n"
+				});
 		}
 		[Command("счет"),Aliases("s","score")]
 		[RequireGuild]
@@ -138,11 +139,11 @@ namespace DsharpBot
 				});
 
 			var result = await directMessageChannel.GetNextMessageAsync(ctx.User);
-			var tags = result.Result.Content.Split(", ");
 
-			Console.WriteLine(result);
+			var tags = result.Result.Content.Replace(" ", "");
 
-			respondent.Tags = tags.ToList();
+			var tagsArray = tags.Split(",");
+			respondent.Tags = tagsArray.ToList();
 			
 			if (!result.TimedOut)
 			{
@@ -214,15 +215,16 @@ namespace DsharpBot
 				await ctx.RespondAsync($"У указанного пользователя отсутствует анкета");
 			}
 		}
-		[Command("найти-человека-по-тегам"), Aliases("fbt","findbytags")]
+		[Command("найти-по-тегам"), Aliases("fbt", "findbytags")]
 		public async Task FindByTags(CommandContext ctx)
 		{
 			Guild guild = Program.GetGuild(1);
 			Respondent respondent = guild.Respondents[ctx.User.Id];
-			
-			if (guild.Respondents[ctx.User.Id].Form == null )
-				await ctx.RespondAsync( 
-					new DiscordEmbedBuilder{
+
+			if (guild.Respondents[ctx.User.Id].Form == null)
+				await ctx.RespondAsync(
+					new DiscordEmbedBuilder
+					{
 						Color = new DiscordColor("#B388FD"),
 						Description = "Вам необходимо для начала заполнить анкету!"
 					});
@@ -234,7 +236,7 @@ namespace DsharpBot
 
 				string matchedTags = string.Empty;
 				int maxPoints = 0;
-				
+
 				foreach (var candidate in guild.Respondents.Values)
 				{
 					int points = 0;
@@ -251,7 +253,7 @@ namespace DsharpBot
 							}
 						}
 					}
-					if ((points > maxPoints) && (candidate.Id != ctx.User.Id )&& (!guild.Respondents[ctx.User.Id].ViewedIds.Contains(candidate.FormId)))
+					if ((points > maxPoints) && (candidate.Id != ctx.User.Id) && (!guild.Respondents[ctx.User.Id].ViewedIds.Contains(candidate.FormId)))
 					{
 						maxPoints = points;
 						prefferedRespondent = candidate;
@@ -263,21 +265,21 @@ namespace DsharpBot
 						new DiscordEmbedBuilder
 						{
 							Color = new DiscordColor("#B388FD"),
-							Description = 
+							Description =
 								$"Найден подходящий пользователь \n" +
 								$"Совпадающие теги:{matchedTags};\n" +
 								$"Полный список его тегов: {string.Join(" ", prefferedRespondent.Tags)};  \n" +
 								$"Анкета: \n{prefferedRespondent.Form} \n",
 
 							ImageUrl = guild.Respondents[prefferedRespondent.Id].AttachmentUrl
-						}.Build()); 
+						}.Build());
 
 					await b.CreateReactionAsync(DiscordEmoji.FromName(ctx.Client, ":heart:"));
 					await b.CreateReactionAsync(DiscordEmoji.FromName(ctx.Client, ":broken_heart:"));
 
 					var a = await b.WaitForReactionAsync(ctx.User);
-					
-					
+
+
 					if (a.Result.Emoji.GetDiscordName() == ":heart:")
 					{
 						guild.Respondents[ctx.User.Id].ViewedIds.Add(prefferedRespondent.FormId);
@@ -290,16 +292,16 @@ namespace DsharpBot
 
 							});
 						await Members[prefferedRespondent.Id].SendMessageAsync(
-							new DiscordEmbedBuilder 
+							new DiscordEmbedBuilder
 							{
 								Color = new DiscordColor("#B388FD"),
-								Description = 
+								Description =
 									$"Вас оценил пользователь.\n" +
 									$"Код добавления: {respondent.DiscordLink}\n" +
 									$"Анкета: {respondent.Form}\n" +
 									$"Теги: { string.Join(", ", respondent.Tags)};\n",
 								ImageUrl = respondent.AttachmentUrl
-								
+
 							});
 					}
 					else if (a.Result.Emoji.GetDiscordName() == ":broken_heart:")
@@ -315,8 +317,8 @@ namespace DsharpBot
 							});
 					}
 					else
-					{ 
-						await ctx.RespondAsync($"Пожалуйста, используйте реакции предусмотренные системой"); 
+					{
+						await ctx.RespondAsync($"Пожалуйста, используйте реакции предусмотренные системой");
 					}
 
 					Program.SaveFormsData(guild);
@@ -324,11 +326,115 @@ namespace DsharpBot
 				}
 				else
 				{
-					await ctx.RespondAsync($"Увы, никого не нашлось, попробуйте изменить теги");
-					await CreateForm(ctx);
+					var c = await Members[ctx.User.Id].SendMessageAsync($"Увы, никого не нашлось. Поискать случайного человека не опираясь на теги?");
+
+					await c.CreateReactionAsync(DiscordEmoji.FromName(ctx.Client, ":thumbsup:"));
+
+					var a = await c.WaitForReactionAsync(ctx.User);
+
+					if (a.Result.Emoji.GetDiscordName() == ":thumbsup:")
+					{
+						await FindRandomly(ctx);
+					}
+					if (a.TimedOut)
+						await CreateForm(ctx);
 				}
 			}
 		}
+
+		[Command("найти-случайно"), Aliases("fr", "findrandomly")]
+		public async Task FindRandomly(CommandContext ctx)
+        {
+			var guild = Program.GetGuild(1);
+			Respondent respondent = guild.Respondents[ctx.User.Id];
+			Respondent prefferedRespondent = new Respondent();
+			int iterations = 0;
+			while (iterations < 20)
+			{
+				iterations++;
+				prefferedRespondent = guild.Respondents.ElementAt(new Random().Next(0, guild.Respondents.Count)).Value;
+				if (prefferedRespondent.Id != ctx.User.Id && !respondent.ViewedIds.Contains(prefferedRespondent.FormId))
+				{
+					break;
+				}			
+			}
+
+			if (prefferedRespondent.Id != ctx.User.Id && !respondent.ViewedIds.Contains(prefferedRespondent.FormId))
+			{
+
+				var b = await ctx.RespondAsync(
+					new DiscordEmbedBuilder
+					{
+						Color = new DiscordColor("#B388FD"),
+						Description =
+							$"Найден подходящий пользователь \n" +
+							$"Полный список его тегов: {string.Join(" ", prefferedRespondent.Tags)};  \n" +
+							$"Анкета: \n{prefferedRespondent.Form} \n",
+
+						ImageUrl = guild.Respondents[prefferedRespondent.Id].AttachmentUrl
+					}.Build());
+
+				await b.CreateReactionAsync(DiscordEmoji.FromName(ctx.Client, ":heart:"));
+				await b.CreateReactionAsync(DiscordEmoji.FromName(ctx.Client, ":broken_heart:"));
+
+				var a = await b.WaitForReactionAsync(ctx.User);
+
+
+				if (a.Result.Emoji.GetDiscordName() == ":heart:")
+				{
+					guild.Respondents[ctx.User.Id].ViewedIds.Add(prefferedRespondent.FormId);
+					await Members[ctx.User.Id].SendMessageAsync(
+						new DiscordEmbedBuilder
+						{
+							Color = new DiscordColor("#B388FD"),
+							Description =
+								$" Пользователю отправлено сообщение с вашими данными, ожидайте. \nПоиск нового кандидата..."
+
+						});
+					await Members[prefferedRespondent.Id].SendMessageAsync(
+						new DiscordEmbedBuilder
+						{
+							Color = new DiscordColor("#B388FD"),
+							Description =
+								$"Вас оценил пользователь.\n" +
+								$"Код добавления: {respondent.DiscordLink}\n" +
+								$"Анкета: {respondent.Form}\n" +
+								$"Теги: { string.Join(", ", respondent.Tags)};\n",
+							ImageUrl = respondent.AttachmentUrl
+
+						});
+				}
+				else if (a.Result.Emoji.GetDiscordName() == ":broken_heart:")
+				{
+					guild.Respondents[ctx.User.Id].ViewedIds.Add(prefferedRespondent.FormId);
+					await Members[ctx.User.Id].SendMessageAsync(
+						new DiscordEmbedBuilder
+						{
+							Color = new DiscordColor("#B388FD"),
+							Description =
+								$"Поиск нового кандидата..."
+
+						});
+				}
+
+
+				Program.SaveFormsData(guild);
+				await FindByTags(ctx);
+			}
+			else
+			{
+				await Members[ctx.User.Id].SendMessageAsync(
+					 new DiscordEmbedBuilder
+					 {
+						 Color = new DiscordColor("#B388FD"),
+						 Description =
+							 $"Бот не смог никого найти, в системе находится слишком мало анкет.."
+
+					 });
+			}
+		}
+
+
 		public async Task<bool> CollectReactions(CommandContext ctx)
         {
 			var message = await ctx.RespondAsync("Реагируйте на это сообщение :thumbsup: или  :thumbsdown: чтобы проголосовать.");
@@ -341,7 +447,7 @@ namespace DsharpBot
 				if (reaction.Emoji.GetDiscordName() == ":thumbsup:") total++;
 				if (reaction.Emoji.GetDiscordName() == ":thumbsdown:") total--;
 			}
-			return total>0;
+			return total>1;
 		}
 		public static void AddMember(ulong a, DiscordMember b)
         {
