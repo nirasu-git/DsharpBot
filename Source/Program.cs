@@ -15,23 +15,23 @@ namespace DsharpBot
 {
 	public class Program
 	{
-		readonly static string DatabasePath = "G:/DsharpBot/database.json";
+        private static readonly string DatabasePath = "G:/DsharpBot/database.json";
 
-		public static List<DiscordGuild> GuildsToCheck = new List<DiscordGuild>();
+		private static List<DiscordGuild> GuildsToCheck = new List<DiscordGuild>();
 
-		public static Dictionary<ulong, Guild> GuildsData;
-		public static string SerializedData;
-		static DiscordClient Discord;
+		private static Dictionary<ulong, Guild> GuildsData;
+		private static string SerializedData;
+		private static DiscordClient Discord;
 
 		public static void Main()
 		{
-			GuildsData = LoadGuildsData();
+            GuildsData = LoadGuildsData();
 
-            var minutes = 5f;
-			var timer = new Timer(CheckUsersInVoiceChannels, 0f, 0, (int)(1000f * 60f * minutes)); 
+            var minutes = 10f;
+            var timer = new Timer(CheckUsersInVoiceChannels, 0f, 0, (int)(1000f * 60f * minutes));
 
-			new Program().MainAsync().GetAwaiter().GetResult();
-		}
+            new Program().MainAsync().GetAwaiter().GetResult();
+        }
 
 		public async Task MainAsync()
 		{
@@ -42,17 +42,19 @@ namespace DsharpBot
 				TokenType = TokenType.Bot,
 				Intents = DiscordIntents.AllUnprivileged
 			});
-
 			Discord.GuildAvailable += async (discordClient, guildEventArgs) =>
 			{
 				var currentGuild = guildEventArgs.Guild;
 				GuildsToCheck.Add(currentGuild);
-				var guildMembers = currentGuild.Members;
-				foreach (var guildMember in guildMembers) 
+
+
+				foreach (var respondent in GuildsData[1].Respondents)
 				{
-					Commands.AddMember(guildMember.Key, guildMember.Value);
+					var guildMember = await currentGuild.GetMemberAsync(respondent.Key);
+
+					Commands.AddMember(guildMember.Id, guildMember);
+
 				}
-				
 				if (GuildsData.ContainsKey(currentGuild.Id)) await Task.CompletedTask;
 				
 				else
@@ -76,11 +78,8 @@ namespace DsharpBot
 					{
 						GuildsData.Add(1, new Guild());
 					}
-				
 				if (currentGuild != null)
 					AddPointsToUser(currentGuild.Id, message.Author, messageToPoints);
-				
-
 				await Task.CompletedTask;
 			};
 			var commands = Discord.UseCommandsNext(new CommandsNextConfiguration()
@@ -97,14 +96,12 @@ namespace DsharpBot
 			{
 				Expirience = value
 			};
-			
 			if (GuildsData[currentGuildId].Users.ContainsKey(discordUser.Id))
 			{
 				GuildsData[currentGuildId].Users[discordUser.Id].Expirience += value;
 			}
 			else
 				GuildsData[currentGuildId].Users.Add(discordUser.Id, user);
-
 		}
 		static void CheckUsersInVoiceChannels(object state)
 		{
@@ -115,27 +112,18 @@ namespace DsharpBot
 			foreach (var currentGuild in GuildsToCheck)
 			{
 				string data = string.Empty;
-				DiscordChannel channelForBot = null;
 				foreach (var channel in currentGuild.Channels)
 				{
-					if (channel.Value.Name.ToString() == "основной" && channelForBot == null)
-					{
-						channelForBot = channel.Value;
-					}
 					if (channel.Value.Type.ToString() == "Voice")
 					{
 						foreach (var user in channel.Value.Users)
 						{
 							AddPointsToUser(currentGuild.Id, user, new Random().Next(0,1200));
-
-							data += $"{user.DisplayName}, you are rewarded for being in the voice channel, your score is {GuildsData[currentGuild.Id].Users[user.Id].Expirience}\n";
 						}
 					}
 				}
 				SaveGuildsData();
-
-				if (data == string.Empty || channelForBot == null) await Task.CompletedTask;
-				else await channelForBot.SendMessageAsync(data);
+				await Task.CompletedTask;
 			}
 			return 1;
 		}
@@ -144,8 +132,7 @@ namespace DsharpBot
 		public static void SaveFormsData(Guild _guild)
         {
 			GuildsData[1] = _guild;
-			SerializedData = JsonConvert.SerializeObject(GuildsData, Formatting.Indented);
-			File.WriteAllText(DatabasePath, SerializedData);
+			SaveGuildsData();
 		}
 		public static void SaveGuildsData()
 		{

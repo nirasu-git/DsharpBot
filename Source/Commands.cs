@@ -18,23 +18,29 @@ namespace DsharpBot
 		{
 
 			await ctx.RespondAsync(
-				$"Список коротких команд:\n" +
-				$"счет - s \n" +
-				$"получить-роль rolename - tr rolename \n" +
-				$"создать-анкету - cf \n" +
-				$"показать-анкету - sf \n" +
-				$"найти-человека-по-тегам - fbt \n"
-				);
+				new DiscordEmbedBuilder{
+					Color = new DiscordColor("#B388FD"),
+					Description = 
+						$" счет - s - score \n" +
+						$"получить-роль rolename - tr rolename - takerole rolename \n" +
+						$"создать-анкету - cf - createform\n" +
+						$"показать-анкету - sf - showform \n" +
+						$"найти-человека-по-тегам - fbt - findbytags \n"
+				 });
 		}
-		[Command("счет"),Aliases("s")]
+		[Command("счет"),Aliases("s","score")]
 		[RequireGuild]
 		public async Task GetScore(CommandContext ctx)
 		{
 			var guild = Program.GetGuild(ctx.Guild.Id);
 
-			await ctx.RespondAsync($"{ctx.Member.Mention}, your score is {guild.Users[ctx.User.Id].Expirience}");
+			await ctx.RespondAsync(
+				new DiscordEmbedBuilder {
+					Color = new DiscordColor("#B388FD"),
+					Description = $"{ctx.Member.Mention}, your score is {guild.Users[ctx.User.Id].Expirience}" 
+				});
 		}
-		[Command("получить-роль"), Aliases("tr")]
+		[Command("получить-роль"), Aliases("tr","takerole")]
 		[RequireGuild]
 		public async Task TakeRole(CommandContext ctx, params string[] paramsArray)
 		{
@@ -54,31 +60,45 @@ namespace DsharpBot
 				foreach (var role in ctx.Member.Roles)
 				{
 					if (role.Name == paramsArray[0]) 
-						await ctx.RespondAsync("You already have this role."); await Task.CompletedTask;
+						await ctx.RespondAsync(
+							new DiscordEmbedBuilder {
+								Color = new DiscordColor("#B388FD"),
+								Description = $"У вас уже есть эта роль" 
+							});
 				}
 				
-					if (await CollectReactions(ctx))
+				if (await CollectReactions(ctx))
+				{
+					if (rolesThatWasCreatedEarlier != null) 
 					{
-						if (rolesThatWasCreatedEarlier != null) 
-						{
-							await ctx.Member.GrantRoleAsync(rolesThatWasCreatedEarlier);
-						}
-						else
-						{
-						await ctx.Member.GrantRoleAsync(await ctx.Guild.CreateRoleAsync(paramsArray[0]));
-						}
-					await ctx.RespondAsync("Action confirmed.");
-					await ctx.RespondAsync($"You are {paramsArray[0]} now");
-				}
-					else await ctx.RespondAsync("Action declined.");
-				
+						await ctx.Member.GrantRoleAsync(rolesThatWasCreatedEarlier);
+					}
+					else
+					{
+					await ctx.Member.GrantRoleAsync(await ctx.Guild.CreateRoleAsync(paramsArray[0]));
+					}
+					await ctx.RespondAsync(
+						new DiscordEmbedBuilder {
+							Color = new DiscordColor("#B388FD"),
+							Description = "You are {paramsArray[0]} now" 
+					});
+				}	
+				else await ctx.RespondAsync(
+					new DiscordEmbedBuilder {
+						Color = new DiscordColor("#B388FD"),
+						Description = "Action declined." 
+				});
 			}
 			else 
-				await ctx.RespondAsync($"You need {requiredNumberOfPoints-userExp} exp more to use this feature");
+				await ctx.RespondAsync(
+					new DiscordEmbedBuilder {
+						Color = new DiscordColor("#B388FD"),
+						Description = $"You need {requiredNumberOfPoints - userExp} exp more to use this feature" 
+					});
 		}
 
-		[Command("создать-анкету"), Aliases("cf")]
-		public async Task RewriteBlank(CommandContext ctx)
+		[Command("создать-анкету"), Aliases("cf", "createform")]
+		public async Task CreateForm(CommandContext ctx)
 		{
 			if (!Members.ContainsKey(ctx.User.Id))
 			{
@@ -88,7 +108,12 @@ namespace DsharpBot
 				}
 				else
 				{
-					await ctx.RespondAsync("Извините, но эту команду необходимо первый раз написать на сервере на котором есть этот бот(");
+					await ctx.RespondAsync(
+						new DiscordEmbedBuilder
+						{
+							Color = new DiscordColor("#B388FD"),
+							Description = "Извините, но эту команду необходимо первый раз написать на сервере на котором есть этот бот"
+						});
 				}
 			}
 			Guild guild = Program.GetGuild(1);
@@ -104,21 +129,30 @@ namespace DsharpBot
 
 			respondent.Id = ctx.User.Id;
 			respondent.DiscordLink = member.DisplayName + "#" + member.Discriminator;
-
 			var directMessageChannel = await member.CreateDmChannelAsync();
 
-			await directMessageChannel.SendMessageAsync("Введите через запятую теги, по которым будет производится поиск, например название игры, род занятий или тема для обсуждения (dota2, c#, политика)");
+			await directMessageChannel.SendMessageAsync(
+				new DiscordEmbedBuilder {
+					Color = new DiscordColor("#B388FD"),
+					Description = "Введите через запятую теги, по которым будет производится поиск, например название игры, род занятий или тема для обсуждения (dota2, c#, политика)" 
+				});
 
-			var result = await directMessageChannel.GetNextMessageAsync(m  =>
-			{
-				var tags = m.Content.Split(", ");
-				respondent.Tags = tags.ToList();
-				return true;
-			});
+			var result = await directMessageChannel.GetNextMessageAsync(ctx.User);
+			var tags = result.Result.Content.Split(", ");
+
+			Console.WriteLine(result);
+
+			respondent.Tags = tags.ToList();
+			
 			if (!result.TimedOut)
 			{
-				await directMessageChannel.SendMessageAsync("Введите содержимое вашей анкеты как дополнение к тегам и прикрепите к этому сообщению картинку (одним сообщением):");
-				var data = await directMessageChannel.GetNextMessageAsync();
+				await directMessageChannel.SendMessageAsync(
+					new DiscordEmbedBuilder {
+						Color = new DiscordColor("#B388FD"),
+						Description = "Введите содержимое вашей анкеты как дополнение к тегам и прикрепите к этому сообщению картинку (одним сообщением):" 
+					});
+
+				var data = await directMessageChannel.GetNextMessageAsync(ctx.User);
 				if (!data.TimedOut)
 				{
 					respondent.Form = data.Result.Content;
@@ -126,21 +160,41 @@ namespace DsharpBot
 					if (data.Result.Attachments.Count < 1)
 					{
 						respondent.AttachmentUrl = data.Result.Author.AvatarUrl;
-						await directMessageChannel.SendMessageAsync("Обратите внимание - вы не отправили картинку, поэтому к анкете прикреплена ваша аватарка," +
-							" вы можете пересоздать анкету повторным вводом команды");
+						await directMessageChannel.SendMessageAsync(
+							new DiscordEmbedBuilder
+							{
+								Color = new DiscordColor("#B388FD"),
+								Description = "Обратите внимание - вы не отправили картинку, поэтому к анкете прикреплена ваша аватарка\n" +
+							"вы можете пересоздать анкету повторным вводом команды"
+							});
 					}
 					else
 					{
 						respondent.AttachmentUrl = data.Result.Attachments[0].Url;
 					}
-					
+					respondent.FormId = new Random().Next(0, 999999999);
 					Program.SaveFormsData(guild);
-					await directMessageChannel.SendMessageAsync("Анкета создана и сохранена");
+
+					await ShowForm(ctx);
+
+					var b = await directMessageChannel.SendMessageAsync(
+							new DiscordEmbedBuilder
+							{
+								Color = new DiscordColor("#B388FD"),
+								Description = "Желаете начать поиск?"
+							});
+					await b.CreateReactionAsync(DiscordEmoji.FromName(ctx.Client, ":thumbsup:"));
+
+					var a = await b.WaitForReactionAsync(ctx.User);
+
+					if (a.Result.Emoji.GetDiscordName() == ":thumbsup:")
+					{
+						await FindByTags(ctx);
+					}
 				}
-				
 			}	
 		}
-		[Command("показать-мою-анкету"), Aliases("sf")]
+		[Command("показать-мою-анкету"), Aliases("sf","showform")]
 		public async Task ShowForm(CommandContext ctx)
 		{
 			Guild guild = Program.GetGuild(1);
@@ -148,24 +202,30 @@ namespace DsharpBot
 			if (guild.Respondents.ContainsKey(ctx.User.Id))
 			{
 				Respondent respondent = guild.Respondents[ctx.User.Id];
-				await ctx.RespondAsync(
-					$"Теги: { string.Join(", ", respondent.Tags)} \n" +
-					$"Анкета: {respondent.Form}",
-					new DiscordEmbedBuilder { ImageUrl = respondent.AttachmentUrl }.Build());
+				await Members[ctx.User.Id].SendMessageAsync(
+					new DiscordEmbedBuilder
+					{
+						Color = new DiscordColor("#B388FD"),
+						Description = $"Теги: { string.Join(", ", respondent.Tags)} \n" + $"Анкета: {respondent.Form}",
+						ImageUrl = respondent.AttachmentUrl });
 			}
 			else
 			{
 				await ctx.RespondAsync($"У указанного пользователя отсутствует анкета");
 			}
 		}
-		[Command("найти-человека-по-тегам"), Aliases("fbt")]
+		[Command("найти-человека-по-тегам"), Aliases("fbt","findbytags")]
 		public async Task FindByTags(CommandContext ctx)
 		{
 			Guild guild = Program.GetGuild(1);
 			Respondent respondent = guild.Respondents[ctx.User.Id];
 			
 			if (guild.Respondents[ctx.User.Id].Form == null )
-				await ctx.RespondAsync("Для начала необходимо заполнить анкету!");
+				await ctx.RespondAsync( 
+					new DiscordEmbedBuilder{
+						Color = new DiscordColor("#B388FD"),
+						Description = "Вам необходимо для начала заполнить анкету!"
+					});
 			else
 			{
 				List<string> tags = guild.Respondents[ctx.User.Id].Tags;
@@ -174,21 +234,24 @@ namespace DsharpBot
 
 				string matchedTags = string.Empty;
 				int maxPoints = 0;
-				int points = 0;
+				
 				foreach (var candidate in guild.Respondents.Values)
 				{
-					points = 0;
+					int points = 0;
 					matchedTags = string.Empty;
 
-					foreach (var tag in candidate.Tags)
+					foreach (var candidateTag in candidate.Tags)
 					{
-						if (tags.Contains(tag.ToLower()))
+						foreach (var respondentTag in tags)
 						{
-							matchedTags += " " + tag;
-							points += 1;
+							if (respondentTag.ToLower() == candidateTag.ToLower())
+							{
+								matchedTags += " " + respondentTag.ToLower();
+								points += 1;
+							}
 						}
 					}
-					if ((points > maxPoints) && (candidate.Id != ctx.User.Id )&& (!guild.Respondents[ctx.User.Id].ViewedIds.Contains(candidate.Id)))
+					if ((points > maxPoints) && (candidate.Id != ctx.User.Id )&& (!guild.Respondents[ctx.User.Id].ViewedIds.Contains(candidate.FormId)))
 					{
 						maxPoints = points;
 						prefferedRespondent = candidate;
@@ -196,47 +259,73 @@ namespace DsharpBot
 				}
 				if (maxPoints > 0)
 				{
-					await ctx.RespondAsync($"Найден подходящий пользователь \n" +
-						$"Совпадающие теги:{matchedTags};\n" +
-						$"Полный список его тегов: {string.Join(" ", prefferedRespondent.Tags)};  \n" +
-						$"Анкета: \n{prefferedRespondent.Form} \n" +
-						$"1  - :heart: \n" +
-						$"2  - :broken_heart:", new DiscordEmbedBuilder { ImageUrl = guild.Respondents[prefferedRespondent.Id].AttachmentUrl }.Build());
+					var b = await ctx.RespondAsync(
+						new DiscordEmbedBuilder
+						{
+							Color = new DiscordColor("#B388FD"),
+							Description = 
+								$"Найден подходящий пользователь \n" +
+								$"Совпадающие теги:{matchedTags};\n" +
+								$"Полный список его тегов: {string.Join(" ", prefferedRespondent.Tags)};  \n" +
+								$"Анкета: \n{prefferedRespondent.Form} \n",
 
-					var answer = await ctx.Channel.GetNextMessageAsync(ctx.User);
+							ImageUrl = guild.Respondents[prefferedRespondent.Id].AttachmentUrl
+						}.Build()); 
+
+					await b.CreateReactionAsync(DiscordEmoji.FromName(ctx.Client, ":heart:"));
+					await b.CreateReactionAsync(DiscordEmoji.FromName(ctx.Client, ":broken_heart:"));
+
+					var a = await b.WaitForReactionAsync(ctx.User);
 					
-					if (!answer.TimedOut)
+					
+					if (a.Result.Emoji.GetDiscordName() == ":heart:")
 					{
-						if (answer.Result.Content == "1")
-						{
-							guild.Respondents[ctx.User.Id].ViewedIds.Add(prefferedRespondent.Id);
+						guild.Respondents[ctx.User.Id].ViewedIds.Add(prefferedRespondent.FormId);
+						await Members[ctx.User.Id].SendMessageAsync(
+							new DiscordEmbedBuilder
+							{
+								Color = new DiscordColor("#B388FD"),
+								Description =
+									$" Пользователю отправлено сообщение с вашими данными, ожидайте. \nПоиск нового кандидата..."
 
-							Program.SaveFormsData(guild);
-
-							var b = await Members[prefferedRespondent.Id].SendMessageAsync(
-
-								$"Вас оценил пользователь.\n" +
-								$"Код добавления: {respondent.DiscordLink}\n" +
-								$"Анкета: {respondent.Form}\n"+
-								$"Теги:{ string.Join(", ",respondent.Tags)};\n",
-								new DiscordEmbedBuilder { ImageUrl = respondent.AttachmentUrl });
-
-							await Task.CompletedTask;
-						}
-						else if (answer.Result.Content == "2")
-						{
-							guild.Respondents[ctx.User.Id].ViewedIds.Add(prefferedRespondent.Id);
-							Program.SaveFormsData(guild);
-						}
-						else
-						{ 
-							await ctx.RespondAsync($"Пожалуйста, отвечайте на анкету ТОЛЬКО ЦИФРАМИ 1 или 2, другие вариантов ответа на данный момент не предусмотрены"); 
-						}
+							});
+						await Members[prefferedRespondent.Id].SendMessageAsync(
+							new DiscordEmbedBuilder 
+							{
+								Color = new DiscordColor("#B388FD"),
+								Description = 
+									$"Вас оценил пользователь.\n" +
+									$"Код добавления: {respondent.DiscordLink}\n" +
+									$"Анкета: {respondent.Form}\n" +
+									$"Теги:{ string.Join(", ", respondent.Tags)};\n",
+								ImageUrl = respondent.AttachmentUrl
+								
+							});
 					}
+					else if (a.Result.Emoji.GetDiscordName() == ":broken_heart:")
+					{
+						guild.Respondents[ctx.User.Id].ViewedIds.Add(prefferedRespondent.FormId);
+						await Members[ctx.User.Id].SendMessageAsync(
+							new DiscordEmbedBuilder
+							{
+								Color = new DiscordColor("#B388FD"),
+								Description =
+									$"Поиск нового кандидата..."
+
+							});
+					}
+					else
+					{ 
+						await ctx.RespondAsync($"Пожалуйста, используйте реакции предусмотренные системой"); 
+					}
+
+					Program.SaveFormsData(guild);
+					await FindByTags(ctx);
 				}
 				else
 				{
 					await ctx.RespondAsync($"Увы, никого не нашлось, попробуйте изменить теги");
+					await CreateForm(ctx);
 				}
 			}
 		}

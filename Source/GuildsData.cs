@@ -14,9 +14,10 @@ namespace DsharpBot
 	{
 		public List<string> Tags = new List<string> { };
 
-		public string Form { get; set; }
+		public string Form = null;
+		public int FormId { get; set; }
 
-		public List<ulong> ViewedIds = new List<ulong> { };
+		public List<int> ViewedIds = new List<int> { };
 
 		public ulong Id;
 
