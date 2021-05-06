@@ -28,7 +28,7 @@ namespace DsharpBot
             GuildsData = LoadGuildsData();
 
             var minutes = 10f;
-            var timer = new Timer(CheckUsersInVoiceChannels, 0f, 0, (int)(1000f * 60f * minutes));
+            var timer = new Timer(AddPointsToUsersInVoiceChannels, 0f, 0, (int)(1000f * 60f * minutes));
 
             new Program().MainAsync().GetAwaiter().GetResult();
         }
@@ -103,11 +103,7 @@ namespace DsharpBot
 			else
 				GuildsData[currentGuildId].Users.Add(discordUser.Id, user);
 		}
-		static void CheckUsersInVoiceChannels(object state)
-		{
-			var a = AddPointsToUsersInVoiceChannelsAsync();
-		}
-		public static async Task<int> AddPointsToUsersInVoiceChannelsAsync()
+		public static void AddPointsToUsersInVoiceChannels(object state)
 		{
 			foreach (var currentGuild in GuildsToCheck)
 			{
@@ -123,9 +119,7 @@ namespace DsharpBot
 					}
 				}
 				SaveGuildsData();
-				await Task.CompletedTask;
 			}
-			return 1;
 		}
 		public static Guild GetGuild(ulong currentGuildId) => GuildsData[currentGuildId];
 

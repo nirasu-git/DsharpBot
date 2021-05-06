@@ -362,7 +362,7 @@ namespace DsharpBot
 			if (prefferedRespondent.Id != ctx.User.Id && !respondent.ViewedIds.Contains(prefferedRespondent.FormId))
 			{
 
-				var b = await ctx.RespondAsync(
+				var b = await Members[ctx.User.Id].SendMessageAsync(
 					new DiscordEmbedBuilder
 					{
 						Color = new DiscordColor("#B388FD"),
