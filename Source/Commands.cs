@@ -32,13 +32,13 @@ namespace DsharpBot
 		[Command("счет"),Aliases("s","score")]
 		[RequireGuild]
 		public async Task GetScore(CommandContext ctx)
-		{
+			{
 			var guild = Program.GetGuild(ctx.Guild.Id);
 
 			await ctx.RespondAsync(
 				new DiscordEmbedBuilder {
 					Color = new DiscordColor("#B388FD"),
-					Description = $"{ctx.Member.Mention}, ваш счет равен {guild.Users[ctx.User.Id].Expirience}." 
+					Description = $"Ваш счет равен {guild.Users[ctx.User.Id].Expirience}." 
 				});
 		}
 		[Command("получить-роль"), Aliases("tr", "takerole")]
@@ -55,8 +55,13 @@ namespace DsharpBot
 			{ 
 				foreach (var role in ctx.Guild.Roles.Values)
 				{
-					if (role.Name == string.Join(" ", paramsArray)) 
-						rolesThatWasCreatedEarlier = role;
+					if (role.Name == string.Join(" ", paramsArray))
+					await ctx.RespondAsync(
+						new DiscordEmbedBuilder
+						{
+							Color = new DiscordColor("#B388FD"),
+							Description = $"Эта роль уже существует на сервере, попросите администратора выдать ее вам"
+						});
 				}
 				foreach (var role in ctx.Member.Roles)
 				{

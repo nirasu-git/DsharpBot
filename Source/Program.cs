@@ -20,7 +20,6 @@ namespace DsharpBot
 		private static List<DiscordGuild> GuildsToCheck = new List<DiscordGuild>();
 
 		private static Dictionary<ulong, Guild> GuildsData;
-		private static string SerializedData;
 		private static DiscordClient Discord;
 
 		public static void Main()
@@ -42,32 +41,32 @@ namespace DsharpBot
 				TokenType = TokenType.Bot,
 				Intents = DiscordIntents.AllUnprivileged
 			});
+
 			Discord.GuildAvailable += async (discordClient, guildEventArgs) =>
 			{
 				var currentGuild = guildEventArgs.Guild;
 				GuildsToCheck.Add(currentGuild);
-
 
 				foreach (var respondent in GuildsData[1].Respondents)
 				{
 					var guildMember = await currentGuild.GetMemberAsync(respondent.Key);
 
 					Commands.AddMember(guildMember.Id, guildMember);
-
 				}
-				if (GuildsData.ContainsKey(currentGuild.Id)) await Task.CompletedTask;
-				
-				else
+				if (!GuildsData.ContainsKey(currentGuild.Id))
 				{
 					GuildsData.Add(currentGuild.Id, new Guild());
 				}
-				SerializedData = JsonConvert.SerializeObject(GuildsData);
+				SaveGuildsData();
+				await Task.CompletedTask;
 			};
+
 			Discord.UseInteractivity(new InteractivityConfiguration()
 			{
 				PollBehaviour = PollBehaviour.KeepEmojis,
 				Timeout = TimeSpan.FromHours(30)
 			});
+
 			Discord.MessageCreated += async (discordClient, message) =>
 			{
 				var currentGuild = message.Guild;
@@ -75,11 +74,16 @@ namespace DsharpBot
 				var messageToPoints = message.Message.Content.Length * message.Message.Content.Length / 30;
 
 				if (!GuildsData.ContainsKey(1))
-					{
 						GuildsData.Add(1, new Guild());
-					}
+
 				if (currentGuild != null)
-					AddPointsToUser(currentGuild.Id, message.Author, messageToPoints);
+					if (!GuildsData.ContainsKey(currentGuild.Id))
+					{
+						GuildsData.Add(currentGuild.Id, new Guild());
+						AddPointsToUser(currentGuild.Id, message.Author, messageToPoints);
+					}
+				
+				SaveGuildsData();
 				await Task.CompletedTask;
 			};
 			var commands = Discord.UseCommandsNext(new CommandsNextConfiguration()
@@ -92,16 +96,17 @@ namespace DsharpBot
 		}
 		static void AddPointsToUser(ulong currentGuildId, DiscordUser discordUser, float value)
         {
-			var user = new User()
-			{
-				Expirience = value
-			};
 			if (GuildsData[currentGuildId].Users.ContainsKey(discordUser.Id))
 			{
 				GuildsData[currentGuildId].Users[discordUser.Id].Expirience += value;
 			}
 			else
-				GuildsData[currentGuildId].Users.Add(discordUser.Id, user);
+			{
+				GuildsData[currentGuildId].Users.Add(discordUser.Id, new User()
+				{
+					Expirience = value
+				});
+			}
 		}
 		public static void AddPointsToUsersInVoiceChannels(object state)
 		{
@@ -118,8 +123,9 @@ namespace DsharpBot
 						}
 					}
 				}
-				SaveGuildsData();
+				
 			}
+			SaveGuildsData();
 		}
 		public static Guild GetGuild(ulong currentGuildId) => GuildsData[currentGuildId];
 
@@ -130,13 +136,12 @@ namespace DsharpBot
 		}
 		public static void SaveGuildsData()
 		{
-			SerializedData = JsonConvert.SerializeObject(GuildsData, Formatting.Indented);
-			File.WriteAllText(DatabasePath, SerializedData);
+			File.WriteAllText(DatabasePath, JsonConvert.SerializeObject(GuildsData, Formatting.Indented));
 		}
 
 		internal static Dictionary<ulong, Guild> LoadGuildsData()
 		{
-			if (File.Exists(DatabasePath) && File.ReadAllText(DatabasePath) != null)
+			if (File.Exists(DatabasePath))
 			{
 				return JsonConvert.DeserializeObject<Dictionary<ulong, Guild>>(File.ReadAllText(DatabasePath));
 			}
