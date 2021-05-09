@@ -77,11 +77,14 @@ namespace DsharpBot
 						GuildsData.Add(1, new Guild());
 
 				if (currentGuild != null)
+				{
 					if (!GuildsData.ContainsKey(currentGuild.Id))
 						GuildsData.Add(currentGuild.Id, new Guild());
-						
-				AddPointsToUser(currentGuild.Id, message.Author, messageToPoints);
+					AddPointsToUser(currentGuild.Id, message.Author, messageToPoints);
+				}
+				
 				SaveGuildsData();
+				await Task.CompletedTask;
 			};
 			var commands = Discord.UseCommandsNext(new CommandsNextConfiguration()
 			{
