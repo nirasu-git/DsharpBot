@@ -1,6 +1,6 @@
 <p align="center">
   <a href="https://github.com/nirasu-git/DsharpBot">
-    <img src="https://cdn.discordapp.com/app-icons/836223850383016006/1170e78a045881f3d0dbbd7070869f3c.png?size=256" width=200 height=200>
+    ![image](https://user-images.githubusercontent.com/74206629/118292997-dfc80100-b4e1-11eb-9435-31252ab8514f.png)
   </a>
 
   <h1 align="center">haze</h3>
