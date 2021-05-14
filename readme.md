@@ -1,6 +1,6 @@
 <p align="center">
   <a href="https://github.com/nirasu-git/DsharpBot">
-    ![image](https://user-images.githubusercontent.com/74206629/118292997-dfc80100-b4e1-11eb-9435-31252ab8514f.png)
+    <img src="https://user-images.githubusercontent.com/74206629/118292997-dfc80100-b4e1-11eb-9435-31252ab8514f.png">
   </a>
 
   <h1 align="center">haze</h3>
