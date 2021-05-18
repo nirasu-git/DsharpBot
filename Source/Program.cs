@@ -15,7 +15,7 @@ namespace DsharpBot
 {
 	public class Program
 	{
-        private static readonly string DatabasePath = "G:/DsharpBot/database.json";
+        private static readonly string DatabasePath = "database.json";
 
 		private static List<DiscordGuild> GuildsToCheck = new List<DiscordGuild>();
 
