@@ -1,8 +1,7 @@
-namespace DsharpBot
+namespace haze.Source
 {
-	class TokenExample //class Token
-	{
-		public static string token = ""; // your Bot Token
-		public static ulong[] adminID = { }; // admin's ID's array there
-	}
+    internal class TokenExample //change to "class Token"
+    {
+        public static string token = ""; // your Bot Token
+    }
 }

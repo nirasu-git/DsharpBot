@@ -3,7 +3,7 @@
     <img src="https://user-images.githubusercontent.com/74206629/118292997-dfc80100-b4e1-11eb-9435-31252ab8514f.png">
   </a>
 
-  <h1 align="center">haze</h3>
+  <h1 align="center">haze</h1>
   <p align="center">
     Бот для поиска новых знакомств и друзей <br> Discord <br> В активной разработке
     <br>
