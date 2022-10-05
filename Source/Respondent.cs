@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace haze.Source
+namespace haze
 {
     public class Respondent
     {

@@ -1,14 +1,19 @@
 using Microsoft.Data.Sqlite;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Text;
 
-namespace haze.Source
+namespace haze
 {
     public static class DataBase
     {
-        private const string DataSource = "./SqliteDB.db";
+        private const string DataSource = "SqliteDB.db";
+        private const string SerializedLastIdPath = "LattestId.dat";
         private const string CommaSplitter = ", ";
+
+        private static bool hasLastIdWasLoaded = false;
+        private static int  cachedLastId = int.MinValue;
 
         private static readonly SqliteConnectionStringBuilder connectionStringBuilder = new SqliteConnectionStringBuilder();
 
@@ -33,12 +38,22 @@ namespace haze.Source
             .Append("{0}, {1}, {2}, {3}, {4}, {5})")
             .ToString();
 
+        public static int LastFormId
+        {
+            get
+            {
+                if (hasLastIdWasLoaded) return cachedLastId;
+                cachedLastId = LoadLastFormId();
+                hasLastIdWasLoaded = true;
+                return cachedLastId;
+            }
+        }
 
         public static Dictionary<ulong, string[]> Initialize()
         {
             connectionStringBuilder.DataSource = DataSource;
 
-            Dictionary<ulong, string[]> idTagsPairs = new Dictionary<ulong, string[]>();
+            var idTagsPairs = new Dictionary<ulong, string[]>();
 
             try
             {
@@ -73,10 +88,9 @@ namespace haze.Source
                 using var connection = new SqliteConnection(connectionStringBuilder.ConnectionString);
                 connection.Open();
                 var command = new SqliteCommand(
-                    string.Format("DELETE FROM Users WHERE id = {0}", respondent.Id), 
+                    string.Format("DELETE FROM Users WHERE id = {0}", respondent.Id),
                     connection);
                 command.ExecuteNonQuery();
-
                 command = new SqliteCommand(string.Format(
                     insertValuesIntoUsersCommandToFormat,
                     respondent.Id,
@@ -87,6 +101,14 @@ namespace haze.Source
                     respondent.AttachmentUrl), connection);
                 command.ExecuteNonQuery();
                 connection.Close();
+
+                using var stream = File.Open(SerializedLastIdPath, FileMode.Create);
+
+                using var writer = new BinaryWriter(stream, Encoding.UTF8, false);
+
+                writer.Write(respondent.FormId);
+
+                cachedLastId = respondent.FormId;
             }
             catch (Exception e)
             {
@@ -94,15 +116,33 @@ namespace haze.Source
             }
         }
 
+        private static int LoadLastFormId()
+        {
+            var id = int.MinValue;
+
+            if (!File.Exists(SerializedLastIdPath))
+            {
+                return id;
+            }
+
+            using var stream = File.Open(SerializedLastIdPath, FileMode.Open);
+
+            using var reader = new BinaryReader(stream, Encoding.UTF8, false);
+
+            id = reader.ReadInt32();
+
+            return id;
+        }
+
         public static int LoadFormId(ulong respondentId)
         {
-            int formId = 0;
+            var formId = 0;
             try
             {
                 using var connection = new SqliteConnection(connectionStringBuilder.ConnectionString);
                 connection.Open();
                 using var command = new SqliteCommand(
-                    string.Format("SELECT form_id FROM Users WHERE id = {0}", respondentId), 
+                    string.Format("SELECT form_id FROM Users WHERE id = {0}", respondentId),
                     connection);
                 var reader = command.ExecuteReader();
                 while (reader.Read())
@@ -121,14 +161,14 @@ namespace haze.Source
 
         public static Respondent LoadForm(ulong respondentId)
         {
-            Respondent respondent = new Respondent();
+            var respondent = new Respondent();
             try
             {
                 using var connection = new SqliteConnection(connectionStringBuilder.ConnectionString);
                 connection.Open();
 
                 using var command = new SqliteCommand(
-                    string.Format("SELECT id, tags, form, form_id, discord_link, attachment_url FROM Users WHERE id = {0}", respondentId), 
+                    string.Format("SELECT id, tags, form, form_id, discord_link, attachment_url FROM Users WHERE id = {0}", respondentId),
                     connection);
 
                 var reader = command.ExecuteReader();
@@ -161,7 +201,7 @@ namespace haze.Source
                 string response = null;
 
                 using var command = new SqliteCommand(
-                    string.Format("SELECT vieved_forms FROM Users WHERE id = {0}", respondentId), 
+                    string.Format("SELECT vieved_forms FROM Users WHERE id = {0}", respondentId),
                     connection);
 
                 var reader = command.ExecuteReader();
@@ -172,7 +212,7 @@ namespace haze.Source
                 response += formId.ToString();
 
                 using var command1 = new SqliteCommand(
-                    string.Format("INSERT INTO Users (vieved_forms) VALUES ({0})",response),
+                    string.Format("INSERT INTO Users (vieved_forms) VALUES ({0})", response),
                     connection);
 
                 var reader1 = command1.ExecuteReader();

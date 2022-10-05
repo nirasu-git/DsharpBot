@@ -4,35 +4,39 @@ using DSharpPlus.Entities;
 using DSharpPlus.Interactivity.Extensions;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 
-namespace haze.Source
+namespace haze
 {
     internal class Commands : BaseCommandModule
     {
-        private static Dictionary<ulong, DiscordMember> Members = new Dictionary<ulong, DiscordMember>();
+
+        private const string CommaSplitter = ", ";
+
+        private static readonly DiscordColor defaultColor = new DiscordColor("#B388FD");
+
+        private static readonly Dictionary<ulong, DiscordMember> Members = new Dictionary<ulong, DiscordMember>();
 
         public static Dictionary<ulong, string[]> IdTagsPairs = new Dictionary<ulong, string[]>();
 
-        [Command("команды"), Aliases("cmds")]
+        [Command("команды"), Aliases("help")]
         public async Task ShortCommands(CommandContext ctx)
         {
             await ctx.RespondAsync(
-                new DiscordEmbedBuilder
-                {
-                    Color = new DiscordColor("#B388FD"),
-                    Description =
-                        $"создать-анкету - cf - createform\n" +
-                        $"показать-анкету - sf - showform \n" +
-                        $"найти-по-тегам - fbt - findbytags \n" +
-                        $"найти-случайно - fr - findrandomly \n",
-                    Url = "https://github.com/nirasu/haze#readme",
-                    Title = "Readme"
-                });
+                ToEmbed(
+                    new StringBuilder()
+                         .Append("создать-анкету - cf \n")
+                         .Append("показать-анкету - sf \n")
+                         .Append("найти-по-тегам - fbt \n")
+                         .Append("найти-случайно - fr \n")
+                         .ToString()
+                ));
         }
 
-        [Command("создать-анкету"), Aliases("cf", "createform")]
+        [Command("создать-анкету"), Aliases("cf")]
         public async Task CreateForm(CommandContext ctx)
         {
             if (!Members.ContainsKey(ctx.User.Id))
@@ -44,10 +48,8 @@ namespace haze.Source
                 else
                 {
                     await ctx.RespondAsync(
-                        ToEmbed(
-                                "Извините, но эту команду необходимо " +
-                                "первый раз написать на сервере на котором есть этот бот"
-                            ));
+                        ToEmbed("Извините, но эту команду необходимо первый раз написать на сервере на котором есть этот бот")
+                        );
                 }
             }
             var member = Members[ctx.User.Id];
@@ -55,18 +57,24 @@ namespace haze.Source
             var respondent = new Respondent
             {
                 Id = ctx.User.Id,
-                DiscordLink = member.DisplayName + "#" + member.Discriminator
+                DiscordLink = new StringBuilder()
+                .Append(member.DisplayName)
+                .Append("#")
+                .Append(member.Discriminator)
+                .ToString()
             };
 
             var discordMessage = await member.SendMessageAsync(
                 ToEmbed(
-                        "Введите через запятую теги, по которым будет производится поиск, " +
-                        "например название игры, род занятий или тема для обсуждения. Регистр не важен. Пример сообщения: \ndota2, c#, политика"
+                    new StringBuilder()
+                    .Append("Введите через запятую теги, по которым будет производится поиск, ")
+                    .Append("например название игры, род занятий или тема для обсуждения. Регистр не важен. Пример сообщения: \ndota2, c#, политика")
+                    .ToString()
                     ));
 
             var channel = discordMessage.Channel;
             var result = await channel.GetNextMessageAsync(ctx.User);
-            var tags = result.Result.Content.Split(", ");
+            var tags = result.Result.Content.Split(CommaSplitter);
             respondent.Tags = tags;
 
             if (!IdTagsPairs.ContainsKey(ctx.User.Id))
@@ -77,11 +85,10 @@ namespace haze.Source
             {
                 IdTagsPairs[ctx.User.Id] = tags;
             }
+
             await member.SendMessageAsync(
-                    ToEmbed(
-                            "Введите содержимое вашей анкеты как дополнение к тегам и прикрепите " +
-                            "к этому сообщению картинку (одним сообщением): "
-                        ));
+                    ToEmbed("Введите содержимое вашей анкеты как дополнение к тегам и прикрепите к этому сообщению картинку (одним сообщением): ")
+                    );
 
             var data = await channel.GetNextMessageAsync(ctx.User);
 
@@ -92,57 +99,51 @@ namespace haze.Source
             else
                 respondent.AttachmentUrl = data.Result.Attachments[0].Url;
 
-            respondent.FormId = new Random().Next(2, 999999999);
+            respondent.FormId = DataBase.LastFormId + 1;
 
             DataBase.SaveForm(respondent);
             await ShowFormPrivate(ctx, respondent);
         }
 
-        [Command("показать-мою-анкету"), Aliases("sf", "showform")]
+        [Command("показать-мою-анкету"), Aliases("sf")]
         public async Task ShowForm(CommandContext ctx)
         {
             if (IdTagsPairs.ContainsKey(ctx.User.Id))
             {
-                Respondent respondent = DataBase.LoadForm(ctx.User.Id);
+                var respondent = DataBase.LoadForm(ctx.User.Id);
                 if (respondent != null)
                 {
                     await ctx.Channel.SendMessageAsync(
                         ToEmbed(
-                                $"Ваша анкета: \nТеги: { string.Join(", ", respondent.Tags)} \n" + $"Анкета: {respondent.Form}",
+                                string.Format("Ваша анкета: \nТеги: {0} \n Анкета: {1}", string.Join(CommaSplitter, respondent.Tags), respondent.Form),
                                 respondent.AttachmentUrl
                             ));
                 }
             }
             else
             {
-                await ctx.RespondAsync(
-                    ToEmbed(
-                            $"У вас отсутствует анкета."
-                        ));
+                await ctx.RespondAsync(ToEmbed($"У вас отсутствует анкета."));
             }
         }
 
-        [Command("найти-по-тегам"), Aliases("fbt", "findbytags")]
+        [Command("найти-по-тегам"), Aliases("fbt")]
         public async Task FindByTags(CommandContext ctx)
         {
-            Respondent respondent = DataBase.LoadForm(ctx.User.Id);
+            var respondent = DataBase.LoadForm(ctx.User.Id);
 
             if (respondent.Form == null)
-                await ctx.RespondAsync(
-                    ToEmbed(
-                            "Вам необходимо сначала заполнить анкету."
-                        ));
+                await ctx.RespondAsync(ToEmbed("Вам необходимо сначала заполнить анкету."));
             else
             {
-                Respondent prefferedRespondent = new Respondent();
+                var prefferedRespondent = new Respondent();
 
                 string matchedTags;
 
-                int maxPoints = 0;
-                int index = 0;
-                for (int i = 0; i < IdTagsPairs.Values.Count; i++)
+                var maxPoints = 0;
+                var index = 0;
+                for (var i = 0; i < IdTagsPairs.Values.Count; i++)
                 {
-                    int points = 0;
+                    var points = 0;
                     matchedTags = string.Empty;
 
                     foreach (var candidateTag in IdTagsPairs.ElementAt(i).Value)
@@ -151,7 +152,7 @@ namespace haze.Source
                         {
                             if (respondentTag.ToLower() == candidateTag.ToLower())
                             {
-                                matchedTags += " " + respondentTag.ToLower();
+                                matchedTags += respondentTag.ToLower();
                                 points += 1;
                                 index = i;
                             }
@@ -170,29 +171,24 @@ namespace haze.Source
                 else
                 {
                     await Members[ctx.User.Id].SendMessageAsync(
-                        ToEmbed(
-                                $"По вашим тегам никого не нашлось, " +
-                                $"скорее всего вы **неправильно их заполнили.** Запускаю случайный поиск"
-                            ));
+                        ToEmbed($"По вашим тегам никого не нашлось, скорее всего вы **неправильно их заполнили.** Запускаю случайный поиск"));
                     await FindRandomly(ctx);
                 }
             }
         }
 
-        [Command("найти-случайно"), Aliases("fr", "findrandomly")]
+        [Command("найти-случайно"), Aliases("fr")]
         public async Task FindRandomly(CommandContext ctx)
         {
-            Respondent respondent = DataBase.LoadForm(ctx.User.Id);
+            var respondent = DataBase.LoadForm(ctx.User.Id);
 
             if (respondent == null)
                 await ctx.RespondAsync(
-                    ToEmbed(
-                            "Вам необходимо для начала заполнить анкету!"
-                        ));
+                    ToEmbed("Вам необходимо для начала заполнить анкету!"));
             else
             {
-                Respondent prefferedRespondent = new Respondent();
-                int iterations = 0;
+                var prefferedRespondent = new Respondent();
+                var iterations = 0;
                 while (iterations < IdTagsPairs.Keys.Count)
                 {
                     iterations++;
@@ -211,32 +207,30 @@ namespace haze.Source
                 }
                 else
                 {
-                    await ctx.RespondAsync(
-                        ToEmbed(
-                                $"Я не смогла никого найти, в системе находится слишком мало анкет.."
-                            ));
+                    await ctx.RespondAsync(ToEmbed($"В системе находится слишком мало анкет."));
                 }
             }
-        }
-
-        public static void AddMember(ulong id, DiscordMember member)
-        {
-            if (!Members.ContainsKey(id))
-                Members.Add(id, member);
         }
 
         private static async void SendPrefferedRespondentForm(CommandContext ctx, Respondent respondent, Respondent prefferedRespondent)
         {
             var b = await ctx.RespondAsync(
                         ToEmbed(
-                                $"Найден подходящий пользователь \n" +
-                                $"Полный список его тегов: {string.Join(", ", prefferedRespondent.Tags)};  \n" +
-                                $"\n{prefferedRespondent.Form} \n",
+                            string.Format(
+                                new StringBuilder()
+                                    .Append("Найден подходящий пользователь \n")
+                                    .Append("Полный список его тегов: {0}; \n Форма: {1} \n")
+                                .ToString(),
+                                string.Join(CommaSplitter, prefferedRespondent.Tags),
+                                prefferedRespondent.Form),
                             prefferedRespondent.AttachmentUrl
                             ));
 
             await b.CreateReactionAsync(DiscordEmoji.FromName(ctx.Client, ":heart:"));
+
+            // без этого 2 реакции подряд создаваться не хотят
             await Task.Delay(100);
+
             await b.CreateReactionAsync(DiscordEmoji.FromName(ctx.Client, ":broken_heart:"));
 
             var a = await b.WaitForReactionAsync(ctx.User);
@@ -244,17 +238,17 @@ namespace haze.Source
             if (a.Result.Emoji.GetDiscordName() == ":heart:")
             {
                 DataBase.AddVieviedFormIdToRespondent(ctx.User.Id, prefferedRespondent.FormId);
-                await ctx.RespondAsync(
-                    ToEmbed(
-                            $" Пользователю отправлено сообщение с вашими данными, ожидайте. \n" +
-                            $"Поиск нового кандидата..."
-                        ));
+
+                await ctx.RespondAsync(ToEmbed($" Пользователю отправлено сообщение с вашими данными, ожидайте. \n Поиск нового кандидата..."));
+
                 await Members[prefferedRespondent.Id].SendMessageAsync(
-                    ToEmbed(
-                            $"Вас оценил пользователь.\n" +
-                            $"Код добавления: {respondent.DiscordLink}\n" +
-                            $"Анкета: {respondent.Form}\n" +
-                            $"Теги: { string.Join(", ", respondent.Tags)};\n",
+                    ToEmbed(string.Format(new StringBuilder()
+                                    .Append("Вас оценил пользователь.\n")
+                                    .Append("Код добавления: {0}; \n Анкета: {1} \n Теги: {2}")
+                                .ToString(),
+                                respondent.DiscordLink,
+                            respondent.Form,
+                            string.Join(CommaSplitter, respondent.Tags)),
                         respondent.AttachmentUrl
                         ));
             }
@@ -268,36 +262,43 @@ namespace haze.Source
             }
         }
 
-        private static DiscordEmbed ToEmbed(string text, string imageUrl)
-        {
-            return new DiscordEmbedBuilder
-            {
-                Color = new DiscordColor("#B388FD"),
-                Description = text,
-                ImageUrl = imageUrl
-            };
-        }
-
         private async Task ShowFormPrivate(CommandContext ctx, Respondent respondent)
         {
             await Members[ctx.User.Id].SendMessageAsync(
                     ToEmbed(
-                            $"Ваша анкета: \nТеги: { string.Join(", ", respondent.Tags)} \n" + $"Анкета: {respondent.Form}",
+                            string.Format("Ваша анкета: \nТеги: {0} \n Анкета: {1}", string.Join(CommaSplitter, respondent.Tags), respondent.Form),
                             respondent.AttachmentUrl
                         ));
             await Members[ctx.User.Id].SendMessageAsync(
                 ToEmbed(
-                        $"Используйте команду **-fr** чтобы найти случайного человека или **-fbt** " +
-                        $"чтобы найти человека по тегам. Команды можете вводить как на сервере, так и прямо сюда."
+                    new StringBuilder()
+                    .Append("Используйте команду **-fr** чтобы найти случайного человека или **-fbt** ")
+                    .Append("чтобы найти человека по тегам. Команды можете вводить как на сервере, так и прямо сюда.")
+                    .ToString()
                     ));
+        }
+
+        public static void AddMember(ulong id, DiscordMember member)
+        {
+            if (!Members.ContainsKey(id))
+                Members.Add(id, member);
         }
 
         private static DiscordEmbed ToEmbed(string text)
         {
             return new DiscordEmbedBuilder
             {
-                Color = new DiscordColor("#B388FD"),
+                Color = defaultColor,
                 Description = text
+            };
+        }
+        private static DiscordEmbed ToEmbed(string text, string imageUrl)
+        {
+            return new DiscordEmbedBuilder
+            {
+                Color = defaultColor,
+                Description = text,
+                ImageUrl = imageUrl
             };
         }
     }

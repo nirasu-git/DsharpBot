@@ -1,4 +1,4 @@
-namespace haze.Source
+namespace haze
 {
     internal class TokenExample //change to "class Token"
     {
