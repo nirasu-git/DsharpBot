@@ -9,14 +9,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace haze.Source
+namespace haze
 {
     public class Program
     {
-        private static List<DiscordGuild> GuildsToCheck = new List<DiscordGuild>();
-
-        private static DiscordClient Discord;
-
         public static void Main()
         {
             Commands.IdTagsPairs = DataBase.Initialize();
@@ -25,44 +21,40 @@ namespace haze.Source
 
         public async Task MainAsync()
         {
-            Discord =
-                new DiscordClient(new DiscordConfiguration()
-                {
-                    AutoReconnect = true,
-                    Token = Token.token,
-                    TokenType = TokenType.Bot,
-                    Intents = DiscordIntents.AllUnprivileged
-                });
+            var discord = new DiscordClient(new DiscordConfiguration()
+            {
+                AutoReconnect = true,
+                Token = Token.token,
+                TokenType = TokenType.Bot,
+                Intents = DiscordIntents.AllUnprivileged
+            });
 
-            Discord
-                .UseInteractivity(new InteractivityConfiguration()
-                {
-                    PollBehaviour = PollBehaviour.KeepEmojis,
-                    Timeout = TimeSpan.FromHours(24)
-                });
-            var commands =
-                Discord
-                    .UseCommandsNext(new CommandsNextConfiguration()
-                    { StringPrefixes = new[] { "-", ".", "/" } });
+            discord.UseInteractivity(new InteractivityConfiguration()
+            {
+                PollBehaviour = PollBehaviour.KeepEmojis,
+                Timeout = TimeSpan.FromHours(24)
+            });
+
+            var commands = discord.UseCommandsNext(new CommandsNextConfiguration() { StringPrefixes = new[] { "-", ".", "/" } });
             commands.RegisterCommands<Commands>();
 
-            Discord.GuildAvailable += async (discordClient, guildEventArgs) =>
+            discord.GuildAvailable += async (discordClient, guildEventArgs) =>
             {
-                var currentGuild = guildEventArgs.Guild;
-                GuildsToCheck.Add(currentGuild);
-                if (Commands.IdTagsPairs != null)
+                if (Commands.IdTagsPairs == null) return;
+
+                ulong[] ids = Commands.IdTagsPairs.Keys.ToArray();
+
+                var idsLength = ids.Length;
+
+                for (var i = 0; i < idsLength; i++)
                 {
-                    ulong[] ids = Commands.IdTagsPairs.Keys.ToArray();
+                    var guildMember = await guildEventArgs.Guild.GetMemberAsync(ids[i]);
 
-                    foreach (var id in ids)
-                    {
-                        var guildMember = await currentGuild.GetMemberAsync(id);
-
-                        Commands.AddMember(guildMember.Id, guildMember);
-                    }
+                    Commands.AddMember(guildMember.Id, guildMember);
                 }
             };
-            await Discord.ConnectAsync();
+
+            await discord.ConnectAsync();
             await Task.Delay(-1);
         }
     }
