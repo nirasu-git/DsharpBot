@@ -4,18 +4,12 @@ namespace haze.Source
 {
     public class Respondent
     {
-        public ulong Id;
-
+        public List<int> ViewedFormIds = new List<int>(10);
         public string[] Tags;
-
+        public ulong Id;
         public string Form;
-
-        public int FormId { get; set; }
-
-        public List<int> ViewedFormIds = new List<int>();
-
+        public int FormId;
         public string DiscordLink;
-
-        public string AttachmentUrl { get; set; }
+        public string AttachmentUrl;
     }
 }
