@@ -53,4 +53,4 @@
 ***
 ## Лицензия
 
-Code and documentation copyright 2021 nirasu. Code released under the [MIT LICENCE](https://github.com/nirasu-git/DsharpBot/blob/master/LICENSE).
+Code and documentation copyright 2021 xantezza. Code released under the [MIT LICENCE](https://github.com/nirasu-git/DsharpBot/blob/master/LICENSE).
